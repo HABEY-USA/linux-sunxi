@@ -15,33 +15,20 @@
  *
  */
 
-#include <linux/init.h>
-#include <linux/err.h>
-#include <linux/errno.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/interrupt.h>
-#include <linux/mutex.h>
-#include <linux/math64.h>
-#include <linux/slab.h>
-#include <linux/sched.h>
-#include <linux/mod_devicetable.h>
+#include <linux/init.h>
+#include <linux/pm.h>
 #include <linux/fs.h>
-#include <linux/cdev.h>
-#include <linux/of.h>
-#include <linux/of_device.h>
-#include <linux/of_gpio.h>
-//#include <mach/gpio.h>
-#include <linux/delay.h>
-#include <asm/uaccess.h>
+#include <linux/kernel.h>
 #include <linux/slab.h>
-
+#include <linux/miscdevice.h>
+#include <linux/device.h>
 #include <linux/spi/spi.h>
-#include <linux/shenonmxc.h>
-#include <asm/io.h>
-#ifdef CONFIG_PWR_CD
-#include <linux/proc_fs.h>
-#endif
+#include <plat/sys_config.h>
+#include <asm/uaccess.h>
+#include <linux/delay.h>
+#include <linux/cdev.h>
+
 #include "ist3020.h"
 
 #define IST3020_COUNT 1
@@ -64,9 +51,9 @@ static struct spi_device* this_spi;
 static uint8_t *lcd_buf;
 static uint8_t contrast;
 static unsigned int IST3020_CTL_A0;
+static unsigned int IST3020_nRST;
 
 #ifdef CONFIG_RII_USBHUB_STAT_PWR
-static unsigned int IST3020_nRST;
 static unsigned int SATA_PWR;
 #endif
 
@@ -227,7 +214,8 @@ static int ist3020_write_reg(struct spi_device *spi, uint8_t dat)
     buf_wdat[0] = dat;
     index_xfer.tx_buf = buf_wdat;
 
-    gpio_set_value(IST3020_CTL_A0, 0);
+    //gpio_set_value(IST3020_CTL_A0, 0);
+    gpio_write_one_pin_value(IST3020_CTL_A0, 1, NULL);
     spi_message_add_tail(&index_xfer, &msg);
     status = spi_sync(spi, &msg);
 //    udelay(50);
@@ -239,12 +227,14 @@ static int ist3020_write_reg(struct spi_device *spi, uint8_t dat)
     return status;
 }
 
+#if 0
 #ifdef CONFIG_PWR_CD
 int rii_pwr_off(void)
 {
     gpio_direction_output(pwr_hold, 0);
 }
 EXPORT_SYMBOL(rii_pwr_off);
+#endif
 #endif
 
 static int ist3020_write_data(struct spi_device *spi, uint8_t dat)
@@ -262,7 +252,8 @@ static int ist3020_write_data(struct spi_device *spi, uint8_t dat)
     buf_wdat[0] = dat;
     index_xfer.tx_buf = buf_wdat;
 
-    gpio_set_value(IST3020_CTL_A0, 1);
+    //gpio_set_value(IST3020_CTL_A0, 1);
+    gpio_write_one_pin_value(IST3020_CTL_A0, 1, NULL);
     spi_message_add_tail(&index_xfer, &msg);
     status = spi_sync(spi, &msg);
     //udelay(50);
@@ -386,10 +377,12 @@ static long ist3020_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
             *(uint8_t*)arg = contrast; 
             break;
         case IST3020LCD_IOCTL_BACKLIGHT_ON:
-	    gpio_direction_output(IST3020_backlight, 0);
+	    //gpio_direction_output(IST3020_backlight, 0);
+	    gpio_write_one_pin_value(IST3020_backlight, 0, NULL);
             break;
         case IST3020LCD_IOCTL_BACKLIGHT_OFF:
-	    gpio_direction_output(IST3020_backlight, 1);
+	    //gpio_direction_output(IST3020_backlight, 1);
+	    gpio_write_one_pin_value(IST3020_backlight, 1, NULL);
             break;
         default:
             printk("illegal command\n");
@@ -537,9 +530,11 @@ static int ist3020lcd_init()
 {
     int ret;
     
-    gpio_set_value(IST3020_nRST, 0);
+    //gpio_set_value(IST3020_nRST, 0);
+    gpio_write_one_pin_value(IST3020_nRST, 0, NULL);
     msleep(50);
-    gpio_set_value(IST3020_nRST, 1);
+    //gpio_set_value(IST3020_nRST, 1);
+    gpio_write_one_pin_value(IST3020_nRST, 1, NULL);
     msleep(50);
 
     contrast = 0x20;
@@ -587,6 +582,7 @@ static int ist3020lcd_init()
     return 0;
 }
 
+#if 0
 #ifdef CONFIG_WIFI_BT
 static ssize_t bt_rst(struct device* dev, struct device_attribute* attr, const char* buf, size_t count)
 {
@@ -598,7 +594,9 @@ static ssize_t bt_rst(struct device* dev, struct device_attribute* attr, const c
 }
 static DEVICE_ATTR(bt_rst_ctl, 0666, NULL, bt_rst);
 #endif
+#endif
 
+#if 0
 #ifdef CONFIG_RII_USBHUB_STAT_PWR
 static ssize_t sata_pwr_rst(struct device* dev, struct device_attribute* attr, const char* buf, size_t count)
 {
@@ -638,7 +636,118 @@ static irqreturn_t pwr_irq_fun(int irq, void* data){
     enable_irq(irq);
 }
 #endif
+#endif
 
+static int ist3020lcd_probe(struct spi_device *spi)
+{
+	printk("WWJ========%s start\n", __func__);
+	
+	int ist3020_nRst;
+	int ist3020_A0;
+	int ist3020_backlight;
+	int ret;
+
+	//ist3020-nRst
+	ret = script_parser_fetch("spi0_para", "ist3020_nRst", &ist3020_nRst, sizeof(int));
+	if (ret)
+	{
+		printk("WWJ========%s ist3020-nRst1 \n", __func__);	
+		return -ENODEV; 
+	}
+
+	IST3020_nRST = gpio_request_ex("spi0_para", "ist3020_nRst");
+	if(!IST3020_nRST) 
+	{
+		printk("WWJ========%s ist3020-nRst2 \n", __func__);	
+		return -ENODEV; 		
+	}
+	gpio_write_one_pin_value(IST3020_nRST, 1, NULL);
+	
+
+	//ist3020-A0
+	ret = script_parser_fetch("spi0_para", "ist3020_A0", &ist3020_A0, sizeof(int));
+	if (ret)
+	{
+		printk("WWJ========%s ist3020-A01 \n", __func__);	
+		return -ENODEV; 
+	}
+
+	IST3020_CTL_A0 = gpio_request_ex("spi0_para", "ist3020_A0");
+	if(!IST3020_CTL_A0) 
+	{
+		printk("WWJ========%s ist3020-A02 \n", __func__);	
+		return -ENODEV; 		
+	}
+	gpio_write_one_pin_value(IST3020_CTL_A0, 1, NULL);
+	
+	//ist3020-backlight
+	ret = script_parser_fetch("spi0_para", "ist3020_backlight", &ist3020_backlight, sizeof(int));
+	if (ret)
+	{
+		printk("WWJ========%s ist3020-backlight1 \n", __func__);	
+		return -ENODEV; 
+	}
+
+	IST3020_backlight = gpio_request_ex("spi0_para", "ist3020_backlight");
+	if(!IST3020_backlight) 
+	{
+		printk("WWJ========%s ist3020-backlight \n", __func__);	
+		return -ENODEV; 		
+	}
+	gpio_write_one_pin_value(IST3020_backlight, 0, NULL);
+
+	//init
+	lcd_buf = (uint8_t*)kmalloc(IST3020_WIDTH * IST3020_HEIGHT * 10, GFP_KERNEL);
+    	if(!lcd_buf){
+       	printk(KERN_ERR "kmalloc lcd_buf failed\n");
+        	return -1;
+    	}
+
+	ist3020lcd_init();
+	
+	ret = alloc_chrdev_region(&dev_id, 0, IST3020_COUNT, IST3020_NAME);
+	if(ret){
+		printk(KERN_ERR IST3020_NAME ": alloc_chrdev_region failed\n");
+	       return -1;
+	}
+	major = MAJOR(dev_id);
+
+	ist3020_cdev = cdev_alloc();
+	ist3020_cdev->ops = &ist3020_user_fops;
+	ist3020_cdev->owner = THIS_MODULE;
+	cdev_add(ist3020_cdev, dev_id, IST3020_COUNT);
+
+	sysfs_class = class_create(THIS_MODULE, "ist3020");
+	if (IS_ERR(sysfs_class)) {
+		printk(KERN_ERR "osst :W: Unable to register sysfs class\n");
+	       return PTR_ERR(sysfs_class);
+	}
+
+	ist3020_device = device_create(sysfs_class, NULL, dev_id,
+	                                                NULL, IST3020_NAME);
+
+	if (IS_ERR(ist3020_device)) {
+		printk(KERN_WARNING "osst :W: Unable to add sysfs class member %s\n", IST3020_NAME);
+	       return PTR_ERR(ist3020_device);
+	}
+	clearRam();
+	//printASCII(10, 4, "SHENZHEN SHENCLOUD LTD.");
+	//printASCII(17, 6, "Version1.0.0");
+	//msleep(1000);
+	//clearRam();
+	//printk("KEY_ROW2 = 0x%x\n", __raw_readl(ioremap(0x20e0260, 4)));
+
+	while(0){
+		//ist3020_write_reg(this_spi, 0x40);
+	}
+
+	showBmp(0, 0, 192, 8, Logo);
+	probe_done = 1;
+	
+	return 0;
+}
+
+#if 0
 static int ist3020lcd_probe(struct spi_device *spi)
 {
     printk("WWJ========%s start\n", __func__);
@@ -961,6 +1070,7 @@ irq_fail:
         free_irq(PWR_IRQ, &spi->dev);
 #endif
 }
+#endif
 
 
 static int ist3020lcd_remove(struct spi_device *spi)
@@ -981,7 +1091,7 @@ static struct spi_driver ist3020_driver = {
         .name   = "ist3020lcd_ctrl",
         //.bus    = &spi_bus_type,
         .owner  = THIS_MODULE,
-        .of_match_table = of_match_ptr(spidev_ist3020_ids),
+        //.of_match_table = of_match_ptr(spidev_ist3020_ids),
     },
     .probe  = ist3020lcd_probe,
     .remove = ist3020lcd_remove,
@@ -992,22 +1102,37 @@ static struct spi_driver ist3020_driver = {
      */
 };
 
+static struct spi_board_info  ist3020lcd = {  
+	.modalias = "ist3020lcd_ctrl",  
+	//.platform_data = &at25df641_info,
+	.mode = SPI_MODE_0,
+	.irq = 0,
+	.max_speed_hz = 10 * 1000 * 1000,
+	.bus_num = 0,
+	.chip_select = 0,
+};  
 
 static int __init ist3020lcd_ctrl_init(void)
 {
-    return spi_register_driver(&ist3020_driver);
+	if (spi_register_board_info(&ist3020lcd, 1)){
+       	printk("%s: Register ist3020lcd information failed\n",
+                __func__);
+    	} else {
+        	printk("%s: Register ist3020lcd information OK\n",
+                __func__);
+    	}	
+		
+    	return spi_register_driver(&ist3020_driver);
 }
-
 
 static void __exit ist3020lcd_ctrl_exit(void)
 {
     spi_unregister_driver(&ist3020_driver);
 }
 
-
 module_init(ist3020lcd_ctrl_init);
 module_exit(ist3020lcd_ctrl_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("WenJing Wang");
-MODULE_DESCRIPTION("vk32xx generic serial port driver");
+MODULE_AUTHOR("Ben");
+MODULE_DESCRIPTION("lcd driver");
