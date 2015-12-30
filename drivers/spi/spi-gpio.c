@@ -21,11 +21,12 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
-#include <linux/gpio.h>
+//#include <linux/gpio.h>
 
 #include <linux/spi/spi.h>
 #include <linux/spi/spi_bitbang.h>
 #include <linux/spi/spi_gpio.h>
+#include <plat/sys_config.h>
 
 
 /*
@@ -82,7 +83,6 @@ struct spi_gpio {
 #define SPI_MISO_GPIO	((pdata)->miso)
 #define SPI_MOSI_GPIO	((pdata)->mosi)
 #define SPI_SCK_GPIO	((pdata)->sck)
-
 #define SPI_N_CHIPSEL	((pdata)->num_chipselect)
 
 #endif
@@ -105,17 +105,29 @@ spi_to_pdata(const struct spi_device *spi)
 
 static inline void setsck(const struct spi_device *spi, int is_on)
 {
-	gpio_set_value(SPI_SCK_GPIO, is_on);
+	//gpio_set_value(SPI_SCK_GPIO, is_on);
+	gpio_write_one_pin_value(SPI_SCK_GPIO, is_on, " ");
 }
 
 static inline void setmosi(const struct spi_device *spi, int is_on)
 {
-	gpio_set_value(SPI_MOSI_GPIO, is_on);
+	//gpio_set_value(SPI_MOSI_GPIO, is_on);
+	unsigned int tmp;
+	
+	tmp = (unsigned int)is_on;
+	if (tmp > 0)
+		gpio_write_one_pin_value(SPI_MOSI_GPIO, 1, " ");
+	else
+		gpio_write_one_pin_value(SPI_MOSI_GPIO, 0, " ");
 }
 
 static inline int getmiso(const struct spi_device *spi)
 {
-	return !!gpio_get_value(SPI_MISO_GPIO);
+	//return !!gpio_get_value(SPI_MISO_GPIO);
+	user_gpio_set_t gpio_info[1];
+	gpio_get_one_pin_status(SPI_MISO_GPIO, gpio_info, " ", 1);
+
+	return !!(gpio_info->data);
 }
 
 #undef pdata
@@ -210,15 +222,19 @@ static u32 spi_gpio_spec_txrx_word_mode3(struct spi_device *spi,
 
 static void spi_gpio_chipselect(struct spi_device *spi, int is_active)
 {
-	unsigned long cs = (unsigned long) spi->controller_data;
-
+	//unsigned long cs = (unsigned long) spi->controller_data;
+	int cs = (int) spi->controller_data;
+	
+//printk("spi_gpio_chipselect:1 %d, %d \n", cs, is_active);
 	/* set initial clock polarity */
 	if (is_active)
 		setsck(spi, spi->mode & SPI_CPOL);
 
 	if (cs != SPI_GPIO_NO_CHIPSELECT) {
+		//printk("spi_gpio_chipselect:2 %d\n", is_active);
 		/* SPI is normally active-low */
-		gpio_set_value(cs, (spi->mode & SPI_CS_HIGH) ? is_active : !is_active);
+		//gpio_set_value(cs, (spi->mode & SPI_CS_HIGH) ? is_active : !is_active);
+		gpio_write_one_pin_value(cs, (spi->mode & SPI_CS_HIGH) ? is_active : !is_active, " ");
 	}
 }
 
@@ -232,17 +248,19 @@ static int spi_gpio_setup(struct spi_device *spi)
 
 	if (!spi->controller_state) {
 		if (cs != SPI_GPIO_NO_CHIPSELECT) {
-			status = gpio_request(cs, dev_name(&spi->dev));
-			if (status)
-				return status;
-			status = gpio_direction_output(cs, spi->mode & SPI_CS_HIGH);
+			//status = gpio_request(cs, dev_name(&spi->dev));
+			//if (status)
+			//	return status;
+			//status = gpio_direction_output(cs, spi->mode & SPI_CS_HIGH);
+			status = gpio_write_one_pin_value(cs, spi->mode & SPI_CS_HIGH, " ");
 		}
 	}
 	if (!status)
 		status = spi_bitbang_setup(spi);
 	if (status) {
 		if (!spi->controller_state && cs != SPI_GPIO_NO_CHIPSELECT)
-			gpio_free(cs);
+			//gpio_free(cs);
+			gpio_release(cs, 1);
 	}
 	return status;
 }
@@ -252,7 +270,8 @@ static void spi_gpio_cleanup(struct spi_device *spi)
 	unsigned long	cs = (unsigned long) spi->controller_data;
 
 	if (cs != SPI_GPIO_NO_CHIPSELECT)
-		gpio_free(cs);
+		//gpio_free(cs);
+		gpio_release(cs, 1);
 	spi_bitbang_cleanup(spi);
 }
 
@@ -260,14 +279,16 @@ static int __devinit spi_gpio_alloc(unsigned pin, const char *label, bool is_in)
 {
 	int value;
 
-	value = gpio_request(pin, label);
-	if (value == 0) {
-		if (is_in)
-			value = gpio_direction_input(pin);
-		else
-			value = gpio_direction_output(pin, 0);
-	}
-	return value;
+	//value = gpio_request(pin, label);
+	//if (value == 0) {
+	//	if (is_in)
+	//		value = gpio_direction_input(pin);
+	//	else
+	//		value = gpio_direction_output(pin, 0);
+	//}
+//printk("hehe:value:%d \n", value);
+	//return value;
+	return 0;
 }
 
 static int __devinit
@@ -304,10 +325,12 @@ spi_gpio_request(struct spi_gpio_platform_data *pdata, const char *label,
 
 free_miso:
 	if (SPI_MISO_GPIO != SPI_GPIO_NO_MISO)
-		gpio_free(SPI_MISO_GPIO);
+		//gpio_free(SPI_MISO_GPIO);
+		gpio_release(SPI_MISO_GPIO, 1);
 free_mosi:
 	if (SPI_MOSI_GPIO != SPI_GPIO_NO_MOSI)
-		gpio_free(SPI_MOSI_GPIO);
+		//gpio_free(SPI_MOSI_GPIO);
+		gpio_release(SPI_MOSI_GPIO, 1);
 done:
 	return value;
 }
@@ -370,10 +393,13 @@ static int __devinit spi_gpio_probe(struct platform_device *pdev)
 		spi_master_put(spi_gpio->bitbang.master);
 gpio_free:
 		if (SPI_MISO_GPIO != SPI_GPIO_NO_MISO)
-			gpio_free(SPI_MISO_GPIO);
+			//gpio_free(SPI_MISO_GPIO);
+			gpio_release(SPI_MISO_GPIO, 1);
 		if (SPI_MOSI_GPIO != SPI_GPIO_NO_MOSI)
-			gpio_free(SPI_MOSI_GPIO);
-		gpio_free(SPI_SCK_GPIO);
+			//gpio_free(SPI_MOSI_GPIO);
+			gpio_release(SPI_MOSI_GPIO, 1);
+		//gpio_free(SPI_SCK_GPIO);
+		gpio_release(SPI_SCK_GPIO, 1);
 		spi_master_put(master);
 	}
 
@@ -396,10 +422,13 @@ static int __devexit spi_gpio_remove(struct platform_device *pdev)
 	platform_set_drvdata(pdev, NULL);
 
 	if (SPI_MISO_GPIO != SPI_GPIO_NO_MISO)
-		gpio_free(SPI_MISO_GPIO);
+		//gpio_free(SPI_MISO_GPIO);
+		gpio_release(SPI_MISO_GPIO, 1);
 	if (SPI_MOSI_GPIO != SPI_GPIO_NO_MOSI)
-		gpio_free(SPI_MOSI_GPIO);
-	gpio_free(SPI_SCK_GPIO);
+		//gpio_free(SPI_MOSI_GPIO);
+		gpio_release(SPI_MOSI_GPIO, 1);
+	//gpio_free(SPI_SCK_GPIO);
+	gpio_release(SPI_SCK_GPIO, 1);	
 
 	return status;
 }

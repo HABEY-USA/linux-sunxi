@@ -357,7 +357,7 @@ config SPI_STMP3XXX
 
 config SPI_SUNXI
 	tristate "SUNXI SPI Controller"
-	depends on ARCH_SUN4I || ARCH_SUN5I || ARCH_SUN7I
+	depends on ARCH_SUN4I || ARCH_SUN5I
 	default y
 	help
 		Allwinner Soc SPI controller,present on sun4i and sun5i chips.

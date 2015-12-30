@@ -1967,9 +1967,9 @@ CONFIG_SPI_MASTER=y
 # SPI Master Controller Drivers
 #
 # CONFIG_SPI_ALTERA is not set
-# CONFIG_SPI_BITBANG is not set
+CONFIG_SPI_BITBANG=y
 # CONFIG_SPI_BUTTERFLY is not set
-# CONFIG_SPI_GPIO is not set
+CONFIG_SPI_GPIO=y
 # CONFIG_SPI_LM70_LLP is not set
 # CONFIG_SPI_OC_TINY is not set
 # CONFIG_SPI_PL022 is not set
