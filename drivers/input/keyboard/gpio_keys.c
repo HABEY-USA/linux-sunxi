@@ -25,7 +25,7 @@
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
 #include <linux/workqueue.h>
-#include <linux/gpio.h>
+//#include <linux/gpio.h>
 #include <linux/of_platform.h>
 #include <linux/of_gpio.h>
 #include <linux/spinlock.h>
@@ -50,6 +50,13 @@ struct gpio_keys_drvdata {
 	void (*disable)(struct device *dev);
 	struct gpio_button_data data[0];
 };
+
+unsigned GPIO_KEY_UP;
+unsigned GPIO_KEY_LEFT;
+unsigned GPIO_KEY_ENTER;
+unsigned GPIO_KEY_RIGHT;
+unsigned GPIO_KEY_CANCLE;
+unsigned GPIO_KEY_DOWN;
 
 /*
  * SYSFS interface for enabling/disabling keys and switches:
@@ -329,7 +336,10 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	const struct gpio_keys_button *button = bdata->button;
 	struct input_dev *input = bdata->input;
 	unsigned int type = button->type ?: EV_KEY;
-	int state = (gpio_get_value_cansleep(button->gpio) ? 1 : 0) ^ button->active_low;
+	//int state = (gpio_get_value_cansleep(button->gpio) ? 1 : 0) ^ button->active_low;
+	int state;
+
+	state = (gpio_read_one_pin_value(button->gpio, NULL) ? 1 : 0) ^ button->active_low;
 
 	if (type == EV_ABS) {
 		if (state)
@@ -827,8 +837,72 @@ static struct platform_driver gpio_keys_device_driver = {
 	}
 };
 
+static struct gpio_keys_button retail_radio_buttons[] = {
+ 	{
+  		.code  = 103,
+  		.gpio  = GPIO_KEY_UP,
+  		.desc  = "key_up",
+  		.active_low = 1,
+ 	}, 
+	{
+  		.code  = 105,
+  		.gpio  = GPIO_KEY_LEFT,
+  		.desc  = "key_left",
+  		.active_low = 1,
+ 	},
+    {
+        .code  = 28,
+        .gpio  = GPIO_KEY_ENTER,
+        .desc  = "key_enter",
+        .active_low = 1,
+    }, 
+    {
+        .code  = 106,
+        .gpio  = GPIO_KEY_RIGHT,
+        .desc  = "key_right",
+        .active_low = 1,
+    },
+    {
+        .code  = 223,
+        .gpio  = GPIO_KEY_CANCLE,
+        .desc  = "key_cancle",
+        .active_low = 1,
+    },
+    {
+        .code  = 108,
+        .gpio  = GPIO_KEY_DOWN,
+        .desc  = "key_down",
+        .active_low = 1,
+    },
+};
+
+static struct gpio_keys_platform_data retail_radio_button_data = {
+ 	.buttons = retail_radio_buttons,
+ 	.nbuttons = ARRAY_SIZE(retail_radio_buttons),
+};
+
+static struct platform_device retail_radio_button_device = {
+ 	.name  = "gpio-keys",
+ 	.id  = -1,
+ 	.num_resources = 0,
+ 	.dev  = {
+  		.platform_data = &retail_radio_button_data,
+ 	},
+};
+
 static int __init gpio_keys_init(void)
 {
+	//add ben
+	GPIO_KEY_UP 	= gpio_request_ex("spi0_para", "key_up");
+	GPIO_KEY_LEFT 	= gpio_request_ex("spi0_para", "key_left");
+	GPIO_KEY_ENTER 	= gpio_request_ex("spi0_para", "key_enter");
+	
+	GPIO_KEY_RIGHT	 = gpio_request_ex("spi0_para", "key_right");
+	GPIO_KEY_CANCLE	 = gpio_request_ex("spi0_para", "key_cancle");
+	GPIO_KEY_DOWN	 = gpio_request_ex("spi0_para", "key_down");
+
+	platform_device_register(&retail_radio_button_device);	
+
 	return platform_driver_register(&gpio_keys_device_driver);
 }
 

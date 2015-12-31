@@ -666,6 +666,7 @@ static void sunxi_emac_set_mac_addr(sunxi_emac_board_info_t *db, unsigned char *
 	       db->emac_vbase + SUNXI_EMAC_MAC_A0_REG);
 }
 
+extern ssize_t at24_mac_read(unsigned char* addr);
 unsigned int sunxi_emac_powerup(struct net_device *ndev)
 {
 	sunxi_emac_board_info_t *db = netdev_priv(ndev);
@@ -703,6 +704,30 @@ unsigned int sunxi_emac_powerup(struct net_device *ndev)
 	/* set up EMAC */
 	emac_setup(ndev);
 
+	//add ben
+	//mac_addr[0] = 0x12;
+	//mac_addr[1] = 0x34;
+	//mac_addr[2] = 0x56;
+    //mac_addr[3] = 0x12;
+    //mac_addr[4] = 0x34;
+    //mac_addr[5] = 0x56;
+
+	if (at24_mac_read(mac_addr) > 0)
+	{
+		got_mac = 1;
+		printk("ben:at24_mac_read Success!! \n");
+
+		//for(i=0; i<6; i++)
+		//	printk("ben:at24_mac_read:%d,%d\n", i, mac_addr[i]);
+	}
+	else
+	{
+		printk("ben:at24_mac_read Failed!! \n");
+	}
+
+	got_mac = 1;
+
+#if 0
 	/* set mac_address to chip */
 	if (strlen(mac_addr_param) == 17) {
 		int i;
@@ -714,7 +739,8 @@ unsigned int sunxi_emac_powerup(struct net_device *ndev)
 
 		pr_info("%s Using MAC from kernel cmdline: "
 			"%02x:%02x:%02x:%02x:%02x:%02x", CARDNAME,
-			mac_addr[0], mac_addr[1], mac_addr[2],
+		
+	mac_addr[0], mac_addr[1], mac_addr[2],
 			mac_addr[3], mac_addr[4], mac_addr[5]);
 		got_mac = 1;
 	}
@@ -734,6 +760,7 @@ unsigned int sunxi_emac_powerup(struct net_device *ndev)
 			mac_addr[3], mac_addr[4], mac_addr[5]);
 		got_mac = 1;
 	}
+#endif
 
 	reg_val = readl(SW_VA_SID_IO_BASE);
 	if (!got_mac && reg_val != 0) {

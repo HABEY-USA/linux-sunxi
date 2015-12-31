@@ -23,6 +23,7 @@
 #include <linux/of.h>
 #include <linux/i2c.h>
 #include <linux/i2c/at24.h>
+#include <plat/sys_config.h>
 
 /*
  * I2C EEPROMs from most vendors are inexpensive and mostly interchangeable.
@@ -300,6 +301,7 @@ static ssize_t at24_read(struct at24_data *at24,
 	return retval;
 }
 
+struct at24_data *at24_private; 
 static ssize_t at24_bin_read(struct file *filp, struct kobject *kobj,
 		struct bin_attribute *attr,
 		char *buf, loff_t off, size_t count)
@@ -307,9 +309,61 @@ static ssize_t at24_bin_read(struct file *filp, struct kobject *kobj,
 	struct at24_data *at24;
 
 	at24 = dev_get_drvdata(container_of(kobj, struct device, kobj));
+
+printk("test:%lld,%d \n", off, count);
 	return at24_read(at24, buf, off, count);
 }
 
+static unsigned char AscToHex(unsigned char aChar)
+{
+    if((aChar>=0x30)&&(aChar<=0x39))
+        aChar -= 0x30;
+    else if((aChar>=0x41)&&(aChar<=0x46))//大写字母
+        aChar -= 0x37;
+    else if((aChar>=0x61)&&(aChar<=0x66))//小写字母
+        aChar -= 0x57;
+    else aChar = 0xff;
+
+    return aChar; 
+} 
+
+//add ben
+ssize_t at24_mac_read(unsigned char* addr)
+{
+	char buf[20];
+	char buf_tmp[12];
+	int i;
+	ssize_t ret;	
+
+	memset(buf, 0x00, 20);
+	memset(buf_tmp, 0x00, 12);
+	ret = at24_read(at24_private, buf, 0, 12);
+
+	if (ret > 0)
+	{	
+		//for(i=0; i<20; i++)
+		//	printk("mac=%d,%d \n", i, buf[i]);
+		
+		for(i=0; i<12; i++)
+		{
+			buf_tmp[i] = AscToHex(buf[i]);
+		}
+	
+		//for(i=0; i<12; i++)
+        //    printk("mac=%d,%d \n", i, buf_tmp[i]);
+	
+		addr[0] = (buf_tmp[0] << 4) | buf_tmp[1];
+		addr[1] = (buf_tmp[2] << 4) | buf_tmp[3];
+		addr[2] = (buf_tmp[4] << 4) | buf_tmp[5];
+
+		addr[3] = (buf_tmp[6] << 4) | buf_tmp[7];
+		addr[4] = (buf_tmp[8] << 4) | buf_tmp[9];
+		addr[5] = (buf_tmp[10] << 4) | buf_tmp[11]; 	
+
+	}
+
+	return ret;
+}
 
 /*
  * Note that if the hardware write-protect pin is pulled high, the whole
@@ -427,8 +481,8 @@ static ssize_t at24_bin_write(struct file *filp, struct kobject *kobj,
 		char *buf, loff_t off, size_t count)
 {
 	struct at24_data *at24;
-
 	at24 = dev_get_drvdata(container_of(kobj, struct device, kobj));
+	
 	return at24_write(at24, buf, off, count);
 }
 
@@ -489,6 +543,7 @@ static int at24_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	unsigned i, num_addresses;
 	kernel_ulong_t magic;
 
+	//printk("ben:at24_probe!! \n");
 	if (client->dev.platform_data) {
 		chip = *(struct at24_platform_data *)client->dev.platform_data;
 	} else {
@@ -560,6 +615,7 @@ static int at24_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto err_out;
 	}
 
+	at24_private = at24;
 	mutex_init(&at24->lock);
 	at24->use_smbus = use_smbus;
 	at24->chip = chip;
@@ -684,8 +740,26 @@ static struct i2c_driver at24_driver = {
 	.id_table = at24_ids,
 };
 
+static struct i2c_board_info i2c_devices[] __initdata = {
+	{
+		I2C_BOARD_INFO("24c02",0x50), //at24c02和他的地址0x50
+	},
+};
+
 static int __init at24_init(void)
 {
+	int ret;
+
+	//printk("ben:at24_init.. \n");
+
+	i2c_register_board_info(2, i2c_devices, ARRAY_SIZE(i2c_devices));
+
+	//wp
+	ret = gpio_request_ex("twi2_para", "at24c02_wp");
+	if (ret == 0)
+		printk("ben:at24_init faile wp \n");
+	gpio_write_one_pin_value(ret, 0, NULL);	
+
 	if (!io_limit) {
 		pr_err("at24: io_limit must not be 0!\n");
 		return -EINVAL;
