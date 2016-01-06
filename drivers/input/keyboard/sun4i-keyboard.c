@@ -35,8 +35,12 @@
     #include <linux/pm.h>
     #include <linux/earlysuspend.h>
 #endif
-//#define  KEY_DEBUG
-//#define  KEY_DEBUG_LEVEL2
+
+//Debug
+#define  KEY_DEBUG
+#define  KEY_DEBUG_LEVEL2
+
+
 #define  PRINT_SUSPEND_INFO
 
 #define  KEY_MAX_CNT  		(13)
@@ -101,18 +105,18 @@
 
 static unsigned char keypad_mapindex[64] =
 {
-    0,0,0,0,0,0,0,0,               //key 1, 8个， 0-7
-    1,1,1,1,1,1,1,                 //key 2, 7个， 8-14
-    2,2,2,2,2,2,2,                 //key 3, 7个， 15-21
-    3,3,3,3,3,3,                   //key 4, 6个， 22-27
-    4,4,4,4,4,4,                   //key 5, 6个， 28-33
-    5,5,5,5,5,5,                   //key 6, 6个， 34-39
-    6,6,6,6,6,6,6,6,6,6,           //key 7, 10个，40-49
-    7,7,7,7,7,7,7,7,7,7,7,7,7,7    //key 8, 17个，50-63
+    0,0,0,0,0,0,0,0,0,0,0,0,        //key 1, 12个， 0-11
+    1,1,1,1,1,1,1,1,1,1,1,          //key 2, 11个， 12-22
+	2,2,2,2,2,2,2,2,2,2,2,2,        //key 3, 12个， 23-34
+	3,3,3,3,3,3,3,3,3,			   //key 4, 9个，  35-43
+	4,4,4,4,4,                     //key 5, 5个，  44-48
+	5,5,5,5,5,5,5,5,                   //key 6, 6个，  49-54
+    6,6,6,6,6,6,6,              	//key 7, 8个，  55-62
 };
 #endif
 
 #ifdef MODE_0V15
+#if 0
 //0.15V mode
 static unsigned char keypad_mapindex[64] =
 {
@@ -131,8 +135,10 @@ static unsigned char keypad_mapindex[64] =
 	12,12,12,12,12,12,12,12,12,12 //key13
 };
 #endif
+#endif
 
 #ifdef EVB
+#if 0
 static unsigned int sun4i_scankeycodes[KEY_MAX_CNT]=
 {
 	[0 ] = KEY_VOLUMEUP,
@@ -148,6 +154,23 @@ static unsigned int sun4i_scankeycodes[KEY_MAX_CNT]=
 	[10] = KEY_RESERVED,
 	[11] = KEY_RESERVED,
 	[12] = KEY_RESERVED,
+};
+#endif
+static unsigned int sun4i_scankeycodes[KEY_MAX_CNT]=
+{
+    [0 ] = KEY_POWER,
+    [1 ] = 103,
+    [2 ] = 105,
+    [3 ] = 28,
+    [4 ] = 106,
+    [5 ] = 223,
+    [6 ] = 108,
+    [7 ] = KEY_RESERVED,
+    [8 ] = KEY_RESERVED,
+    [9 ] = KEY_RESERVED,
+    [10] = KEY_RESERVED,
+    [11] = KEY_RESERVED,
+    [12] = KEY_RESERVED,
 };
 #endif
 
