@@ -310,7 +310,7 @@ static ssize_t at24_bin_read(struct file *filp, struct kobject *kobj,
 
 	at24 = dev_get_drvdata(container_of(kobj, struct device, kobj));
 
-printk("test:%lld,%d \n", off, count);
+//printk("test:%lld,%d \n", off, count);
 	return at24_read(at24, buf, off, count);
 }
 

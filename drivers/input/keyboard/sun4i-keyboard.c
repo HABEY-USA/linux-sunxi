@@ -37,8 +37,8 @@
 #endif
 
 //Debug
-#define  KEY_DEBUG
-#define  KEY_DEBUG_LEVEL2
+//#define  KEY_DEBUG
+//#define  KEY_DEBUG_LEVEL2
 
 
 #define  PRINT_SUSPEND_INFO
