@@ -45,6 +45,7 @@ static char* wifi_mod[] = {" ",
 							"bcm40183",  /* 8 - BCM40183(BCM4330) */
 							"rtl8723as",  /* 9 - RTL8723AS(RF-SM02B) */
 							"rtl8189es"  /* 10 - RTL8189ES(SM89E00) */
+							"rtl8723bs"  /* 11 - RTL8723bs(RTL8723bs) */
 							};
 
 static int mmc_pm_get_res(void);
@@ -89,10 +90,10 @@ EXPORT_SYMBOL(mmc_pm_get_io_val);
 void mmc_pm_power(int mode, int* updown)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
-    if (ops->sdio_card_used && ops->power)
+   if (ops->sdio_card_used && ops->power)
         return ops->power(mode, updown);
     else {
-        mmc_pm_msg("No sdio card, please check your config !!\n");
+       mmc_pm_msg("No sdio card, please check your config !!\n");
         return;
     }
 }
@@ -171,6 +172,8 @@ static int __mmc_pm_get_res(void)
 {
     int ret = 0;
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+
+   printk("enter __mmc_pm_get_res function  \r\n");
     
     ret = script_parser_fetch(wifi_para, "sdio_wifi_used", &ops->sdio_card_used, sizeof(unsigned)); 
     if (ret) {
@@ -181,27 +184,30 @@ static int __mmc_pm_get_res(void)
         mmc_pm_msg("no sdio card used in configuration\n");
         return -1;
     }
+    printk("enter sdio_wifi_used=%d  \r\n",ops->sdio_card_used);
     
     ret = script_parser_fetch(wifi_para, "sdio_wifi_sdc_id", &ops->sdio_cardid, sizeof(unsigned));
     if (ret) {
         mmc_pm_msg("failed to fetch sdio card's sdcid\n");
         return -1;
     }
-
+     printk("enter sdio_wifi_sdc_id=%d  \r\n",ops->sdio_cardid);
     ret = script_parser_fetch(wifi_para, "sdio_wifi_mod_sel", &ops->module_sel, sizeof(unsigned));
     if (ret) {
         mmc_pm_msg("failed to fetch sdio module select\n");
         return -1;
     }
-    ops->mod_name = wifi_mod[ops->module_sel];
-    printk("[wifi]: Select sdio wifi: %s !!\n", wifi_mod[ops->module_sel]);
+   
+    ops->mod_name ="rtl8723bs"; wifi_mod[ops->module_sel];
+	
+    printk("Select sdio wifi: %s    module_sel =%d  !!\n",ops->mod_name, ops->module_sel);
     
-    ops->pio_hdle = gpio_request_ex(wifi_para, NULL);
+   /* ops->pio_hdle = gpio_request_ex(wifi_para, NULL);
     if (!ops->pio_hdle) {
         mmc_pm_msg("failed to fetch sdio card's io handler, please check it !!\n");
         return -1;
     }
-    
+    */
     return 0;
 }
 
@@ -211,7 +217,7 @@ static int mmc_pm_get_res(void)
 	static int get_res = 1;
 
 	mutex_lock(&mmc_pm_get_res_mutex);
-	if (get_res == 1)
+	//if (get_res == 1)
 		get_res = __mmc_pm_get_res();
 	mutex_unlock(&mmc_pm_get_res_mutex);
 
@@ -252,6 +258,8 @@ static int __devinit mmc_pm_probe(struct platform_device *pdev)
 	    break;
 	case 10: /* rtl8189es */
 	    rtl8189es_wifi_gpio_init();
+	case 11:
+	 rtl8723bs_wifi_gpio_init();
 	    break;
         default:
             mmc_pm_msg("Wrong sdio module select %d !!\n", ops->module_sel);
@@ -297,6 +305,9 @@ static int __devexit mmc_pm_remove(struct platform_device *pdev)
 	case 10: /* rtl8189es */
 	    rtl8189es_wifi_gpio_init();
 	    break;
+	case 11:
+		rtl8723bs_wifi_gpio_init();
+		break;
         default:
             mmc_pm_msg("Wrong sdio module select %d !!\n", ops->module_sel);
     }
@@ -351,7 +362,10 @@ static int __init mmc_pm_init(void)
     memset(ops, 0, sizeof(struct mmc_pm_ops));
     mmc_pm_get_res();
     if (!ops->sdio_card_used)
+    	{
+    	printk("mmc_pm_init error ops->sdio_card_used=%d \r\n",ops->sdio_card_used);
         return 0;
+      }
         
     platform_device_register(&mmc_pm_dev);
     return platform_driver_register(&mmc_pm_driver);

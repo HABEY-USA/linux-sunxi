@@ -20,6 +20,9 @@
 static int rtl8189es_powerup = 0;
 static int rtl8189es_suspend = 0;
 
+//static int rtl8189es_powerup = 0;
+//static int rtl8189es_suspend = 0;
+
 static int rtl8189es_gpio_ctrl(char* name, int level)
 {
 	int i = 0, ret = 0;
@@ -130,3 +133,4 @@ void rtl8189es_wifi_gpio_init(void)
 	sunximmc_rescan_card(ops->sdio_cardid, 1);
 	rtl8189es_msg("power up, rescan card.\n");
 }
+

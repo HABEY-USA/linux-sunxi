@@ -745,6 +745,7 @@ extern int console_suspend_enabled;
 static int __init rtw_drv_entry(void)
 {
 	int ret=0;
+	
 
 #if defined CONFIG_MMC_SUNXI_POWER_CONTROL    
 	unsigned int mod_sel = mmc_pm_get_mod_type();	
