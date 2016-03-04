@@ -358,6 +358,9 @@ static  int codec_init(void)
 	return 0;
 }
 
+extern void spk_pa_open(void);
+extern void spk_pa_close(void);
+
 static int codec_play_open(struct snd_pcm_substream *substream)
 {
 	codec_wr_control(SUNXI_DAC_DPC ,  0x1, DAC_EN, 0x1);
@@ -378,6 +381,17 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
 	//enable dac to pa
 	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 	DACPAS, 0x1);
+
+	//codec_wrreg(0x3c, 0xf3);
+    //printk("ben:codec test %d\n", codec_rdreg(0x3c));
+
+	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
+	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
+	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
+	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
+
+	spk_pa_open();
+
 	return 0;
 }
 
@@ -546,6 +560,12 @@ static const struct snd_kcontrol_new sun7i_dac_ctls[] = {
 	 *	0:-1.5db,1:0db
 	 */
 	CODEC_SINGLE("Line output Volume", SUNXI_DAC_ACTL, 26, 1, 0),
+
+	//add ben
+	//CODEC_SINGLE("PhoneOut Switch",SUN7I_CODEC_AC_MIC_PHONE_CAL,4,1,0),
+	//CODEC_SINGLE("PhoneOut S0",SUN7I_CODEC_AC_MIC_PHONE_CAL,0,1,0),
+	//CODEC_SINGLE("PhoneOut S1",SUN7I_CODEC_AC_MIC_PHONE_CAL,1,1,0),
+	CODEC_SINGLE("PhoneOut Gain",SUN7I_CODEC_AC_MIC_PHONE_CAL,5,7,0),
 };
 
 static const struct snd_kcontrol_new sun7i_adc_ctls[] = {
@@ -1555,6 +1575,24 @@ static int __devinit sunxi_codec_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto err_resume_work_queue;
 	}
+
+	//add ben 
+	//codec_wrreg(0x3c, 0xf3);
+    //printk("ben:codec test %d\n", codec_rdreg(0x3c));
+
+	codec_wr_control(0x3c, 0x1, 0, 0x01);
+	codec_wr_control(0x3c, 0x1, 1, 0x01);
+	codec_wr_control(0x3c, 0x1, 4, 0x01);
+
+	codec_wr_control(0x3c, 0x1, 5, 0x00);
+	codec_wr_control(0x3c, 0x1, 6, 0x00);
+	codec_wr_control(0x3c, 0x1, 7, 0x00);
+
+    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
+    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
+    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
+    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
+
 	 return 0;
      err_resume_work_queue:
 	 out:

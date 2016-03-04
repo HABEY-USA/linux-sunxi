@@ -93,6 +93,19 @@
 #define  PA_ENABLE                (4)
 #define  HP_DIRECT                (3)
 
+
+//add ben
+#define SUN7I_CODEC_AC_MIC_PHONE_CAL		(0x3c)
+#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PREG1      (29)
+#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PREG2      (26)
+/* note: no idea where the output pins for the following are. */
+#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTG  (5)
+#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTEN (4)
+#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTS3 (3)
+#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTS2 (2)
+#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTS1 (1)
+#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTS0 (0)
+
 enum m1_codec_config {
 	CMD_MIC_SEL =0,
 	CMD_ADC_SEL,

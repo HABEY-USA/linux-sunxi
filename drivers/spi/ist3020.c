@@ -86,6 +86,7 @@ static uint8_t contrast;
 unsigned IST3020_CTL_A0;
 unsigned IST3020_nRST;
 unsigned IST3020_backlight;
+unsigned spk_pa;
 
 #ifdef CONFIG_RII_USBHUB_STAT_PWR
 static unsigned int SATA_PWR;
@@ -231,6 +232,16 @@ static uint8_t Logo[]={
 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 };
+
+void spk_pa_open(void)
+{
+	gpio_write_one_pin_value(spk_pa, 1, " ");	
+}
+
+void spk_pa_close(void)
+{
+	gpio_write_one_pin_value(spk_pa, 0, " ");
+}
 
 static int ist3020_write_reg(struct spi_device *spi, uint8_t dat)
 {
@@ -703,6 +714,14 @@ static int ist3020lcd_probe(struct spi_device *spi)
 	}
 	gpio_write_one_pin_value(IST3020_backlight, 1, " ");
 
+	spk_pa = gpio_request_ex("spi0_para", "spk_pa");
+    if(!spk_pa)
+    {
+        printk("WWJ========%s spk_pa \n", __func__);
+        return -ENODEV;
+    }
+    gpio_write_one_pin_value(spk_pa, 0, " ");
+	
 	//init
 	lcd_buf = (uint8_t*)kmalloc(IST3020_WIDTH * IST3020_HEIGHT * 10, GFP_KERNEL);
     	if(!lcd_buf){
