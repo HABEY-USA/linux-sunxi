@@ -87,6 +87,10 @@ unsigned IST3020_CTL_A0;
 unsigned IST3020_nRST;
 unsigned IST3020_backlight;
 unsigned spk_pa;
+unsigned m62429p_data;
+unsigned m62429p_clk;
+static struct kobject *m62429p_kobj;
+
 
 #ifdef CONFIG_RII_USBHUB_STAT_PWR
 static unsigned int SATA_PWR;
@@ -242,6 +246,97 @@ void spk_pa_close(void)
 {
 	gpio_write_one_pin_value(spk_pa, 0, " ");
 }
+
+//m62429p
+#define SET_CLK				gpio_write_one_pin_value(m62429p_clk, 1, " ");
+#define RESET_CLK			gpio_write_one_pin_value(m62429p_clk, 0, " ");
+#define SET_DAT				gpio_write_one_pin_value(m62429p_data, 1, " ");
+#define RESET_DAT			gpio_write_one_pin_value(m62429p_data, 0, " ");
+
+/*D7.D8=0dB--(-3)dB*/
+static unsigned char vol_H4[]={0x03,0x01,0x02,0x00};
+                                                                                                    
+/**/
+static unsigned char vol_l5[]={0x15,0x05,0x19,0x09,0x11,0x01,0x1e,0x0e,0x16,0x06,           //D2--D6
+				   				0x1a,0x0a,0x12,0x02,0x1c,0x0c,0x14,0x04,0x18,0x08,			//0dB-(-80dB)
+				   				0x10,0x00
+};
+
+static void m62429p_set_volume(unsigned char db)
+{
+	unsigned char L,H,i;
+	unsigned int volume;
+	unsigned int tmp;
+	unsigned int tmp2;
+
+	//volume = db;
+	//volume = 80-db;
+	volume = db;
+	if (db > 80)
+		volume = 80;
+
+	L = volume/4;
+	H = volume%4;
+
+	//volume = ((0x00+vol_l5[L])<<4)+((vol_H4[H]<<2)+0x03);
+	//volume = volume<<5;
+	tmp = vol_l5[L] << 3;
+	tmp2 = vol_H4[H] << 1;
+	volume = (tmp | tmp2) << 8;
+	
+	//printk("ben test:%d,%x,%x,%x \n", db, tmp, tmp2, volume);
+	RESET_DAT;
+	RESET_CLK;
+
+	for (i=0; i<2; i++)
+	{
+		RESET_DAT;
+        msleep(3);
+        RESET_CLK;
+        msleep(3);
+
+		RESET_DAT;
+		msleep(3);
+		SET_CLK;
+		msleep(3);		
+	}
+
+	for(i=0;i<7;i++)
+	{	
+		RESET_DAT;
+		msleep(3);
+		RESET_CLK;
+		msleep(3);
+		if(volume&0x8000) 
+		{	
+			SET_DAT;
+		}
+		else
+		{ 
+			RESET_DAT;
+		}
+		msleep(3);
+		SET_CLK;
+		msleep(3);
+		volume=volume<<1;
+	}
+
+	for(i=0; i<2; i++)
+	{
+        RESET_DAT;
+        msleep(3);
+        RESET_CLK;
+        msleep(3);
+
+        SET_DAT;
+        msleep(3);
+        SET_CLK;
+        msleep(3);
+	}
+
+	RESET_CLK;
+	msleep(3);
+}  
 
 static int ist3020_write_reg(struct spi_device *spi, uint8_t dat)
 {
@@ -682,10 +777,52 @@ static irqreturn_t pwr_irq_fun(int irq, void* data){
 #endif
 #endif
 
+static int control_volume = 0;
+static ssize_t m62429p_show(struct kobject *kobj, struct kobj_attribute *attr,
+    char *buf)
+{
+	return sprintf(buf, "%d\n", control_volume);
+}
+
+static unsigned char AscToHex(unsigned char aChar)
+{
+    if((aChar>=0x30)&&(aChar<=0x39))
+        aChar -= 0x30;
+    else if((aChar>=0x41)&&(aChar<=0x46))//大写字母
+        aChar -= 0x37;
+    else if((aChar>=0x61)&&(aChar<=0x66))//小写字母
+        aChar -= 0x57;
+    else aChar = 0xff;
+
+    return aChar; 
+} 
+
+static ssize_t m62429p_store(struct kobject *kobj, struct kobj_attribute *attr,
+      const char *buf, size_t count)
+{
+	sscanf(buf, "%d", &control_volume);
+
+	m62429p_set_volume(control_volume);	
+	return count;
+}
+
+static struct kobj_attribute m62429p_attribute =
+      __ATTR(m62429p_control, 0666, m62429p_show, m62429p_store);
+
+static struct attribute *attrs[] = {
+	&m62429p_attribute.attr,
+	NULL,
+};
+
+static struct attribute_group attr_group = {
+	.attrs = attrs,
+};
+
 static int ist3020lcd_probe(struct spi_device *spi)
 {
 	int ret;
 	long xx;
+	int retval;
 	
 	printk("WWJ========%s start\n", __func__);
 	
@@ -721,7 +858,34 @@ static int ist3020lcd_probe(struct spi_device *spi)
         return -ENODEV;
     }
     gpio_write_one_pin_value(spk_pa, 0, " ");
+
+
+	m62429p_data = gpio_request_ex("spi0_para", "m62429p_data");
+    if(!m62429p_data)
+    {
+        printk("WWJ========%s m62429p_data \n", __func__);
+        return -ENODEV;
+    }
+    gpio_write_one_pin_value(m62429p_data, 1, " ");
 	
+    m62429p_clk = gpio_request_ex("spi0_para", "m62429p_clk");
+    if(!m62429p_clk)
+    {
+        printk("WWJ========%s m62429p_clk \n", __func__);
+        return -ENODEV;
+    }
+    gpio_write_one_pin_value(m62429p_clk, 0, " ");
+
+	//m62429p grop
+	m62429p_set_volume(control_volume);
+	m62429p_kobj = kobject_create_and_add("m62429p", kernel_kobj);
+	if (!m62429p_kobj)
+		return -ENOMEM;
+
+	retval = sysfs_create_group(m62429p_kobj, &attr_group);
+	if (retval)
+          kobject_put(m62429p_kobj);
+
 	//init
 	lcd_buf = (uint8_t*)kmalloc(IST3020_WIDTH * IST3020_HEIGHT * 10, GFP_KERNEL);
     	if(!lcd_buf){
