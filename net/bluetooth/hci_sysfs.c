@@ -531,7 +531,7 @@ int hci_add_sysfs(struct hci_dev *hdev)
 	struct device *dev = &hdev->dev;
 	int err;
 
-	BT_DBG("%p name %s bus %d", hdev, hdev->name, hdev->bus);
+	printk("%p name %s bus %d", hdev, hdev->name, hdev->bus);
 
 	dev->parent = hdev->parent;
 	dev_set_name(dev, "%s", hdev->name);

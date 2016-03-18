@@ -20,6 +20,7 @@ static int rtl8723bs_bt_on = 0;
 static int rtk_suspend = 0;
 static int gpio_vcc_en=0;
 static int gpio_wl_on=0;
+static int gpio_bt_wakeup=0;
 
 static int rtl8723bs_gpio_ctrl(char* name, int level)
 {
@@ -143,9 +144,13 @@ void rtl8723bs_power(int mode, int* updown)
 		//rtl8723bs_gpio_ctrl("rtl8723bs_wl_on", 1);
 		gpio_write_one_pin_value(gpio_vcc_en,1,"rtl8723bs_vcc_en");
 		gpio_write_one_pin_value(gpio_wl_on,1,"rtl8723bs_wl_on");
+		mdelay(100);
+		gpio_write_one_pin_value(gpio_bt_wakeup,1,"gpio_bt_wakeup");		
+		
         } else {
         	gpio_write_one_pin_value(gpio_vcc_en,0,"rtl8723bs_vcc_en");
 		gpio_write_one_pin_value(gpio_wl_on,0,"rtl8723bs_wl_on");
+		gpio_write_one_pin_value(gpio_bt_wakeup,0,"gpio_bt_wakeup");
         }
     } else {
         if (rtl8723bs_wl_on)
@@ -185,6 +190,7 @@ void rtl8723bs_wifi_gpio_init(void)
 	rtk_suspend	= 0;
 	 gpio_vcc_en= gpio_request_ex("sdio_wifi_para", "rtl8723bs_vcc_en");
 	 gpio_wl_on= gpio_request_ex("sdio_wifi_para", "rtl8723bs_wl_on");
+	 gpio_bt_wakeup= gpio_request_ex("sdio_wifi_para", "rtl8723bs_wakeup");
 	
 	ops->gpio_ctrl	= rtl8723bs_gpio_ctrl;
 	ops->get_io_val = rtl8723bs_get_gpio_value;

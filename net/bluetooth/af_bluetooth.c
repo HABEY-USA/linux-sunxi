@@ -39,6 +39,7 @@
 #include <linux/kmod.h>
 
 #include <net/bluetooth/bluetooth.h>
+#define CONFIG_BT_SOCK_DEBUG
 
 #ifndef CONFIG_BT_SOCK_DEBUG
 #undef  BT_DBG

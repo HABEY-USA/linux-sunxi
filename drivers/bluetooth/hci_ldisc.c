@@ -524,7 +524,7 @@ static int __init hci_uart_init(void)
 	static struct tty_ldisc_ops hci_uart_ldisc;
 	int err;
 
-	BT_INFO("HCI UART driver ver %s", VERSION);
+	printk("HCI UART driver ver %s", VERSION);
 
 	/* Register the tty discipline */
 
@@ -542,7 +542,7 @@ static int __init hci_uart_init(void)
 	hci_uart_ldisc.owner		= THIS_MODULE;
 
 	if ((err = tty_register_ldisc(N_HCI, &hci_uart_ldisc))) {
-		BT_ERR("HCI line discipline registration failed. (%d)", err);
+		printk("HCI line discipline registration failed. (%d)", err);
 		return err;
 	}
 
@@ -555,6 +555,12 @@ static int __init hci_uart_init(void)
 #ifdef CONFIG_BT_HCIUART_LL
 	ll_init();
 #endif
+//Realtek_add_start	
+//add realtek h5 support	
+#ifdef CONFIG_BT_HCIUART_RTKH5
+	h5_init();
+#endif
+//Realtek_add_end	
 #ifdef CONFIG_BT_HCIUART_ATH3K
 	ath_init();
 #endif
@@ -574,6 +580,9 @@ static void __exit hci_uart_exit(void)
 #endif
 #ifdef CONFIG_BT_HCIUART_LL
 	ll_deinit();
+#endif
+#ifdef CONFIG_BT_HCIUART_RTKH5
+	h5_deinit();
 #endif
 #ifdef CONFIG_BT_HCIUART_ATH3K
 	ath_deinit();

@@ -95,6 +95,14 @@ int bcsp_init(void);
 int bcsp_deinit(void);
 #endif
 
+//Realtek_add_start
+#ifdef CONFIG_BT_HCIUART_RTKH5
+int h5_init(void);
+int h5_deinit(void);
+#endif
+//Realtek_add_end
+
+
 #ifdef CONFIG_BT_HCIUART_LL
 int ll_init(void);
 int ll_deinit(void);
