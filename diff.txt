@@ -1,0 +1,138 @@
+diff --git a/drivers/spi/ist3020.c b/drivers/spi/ist3020.c
+index c686651..8b69631 100755
+--- a/drivers/spi/ist3020.c
++++ b/drivers/spi/ist3020.c
+@@ -86,6 +86,7 @@ static uint8_t contrast;
+ unsigned IST3020_CTL_A0;
+ unsigned IST3020_nRST;
+ unsigned IST3020_backlight;
++unsigned spk_pa;
+ 
+ #ifdef CONFIG_RII_USBHUB_STAT_PWR
+ static unsigned int SATA_PWR;
+@@ -232,6 +233,16 @@ static uint8_t Logo[]={
+ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+ };
+ 
++void spk_pa_open(void)
++{
++	gpio_write_one_pin_value(spk_pa, 1, " ");	
++}
++
++void spk_pa_close(void)
++{
++	gpio_write_one_pin_value(spk_pa, 0, " ");
++}
++
+ static int ist3020_write_reg(struct spi_device *spi, uint8_t dat)
+ {
+     struct spi_message msg;
+@@ -703,6 +714,14 @@ static int ist3020lcd_probe(struct spi_device *spi)
+ 	}
+ 	gpio_write_one_pin_value(IST3020_backlight, 1, " ");
+ 
++	spk_pa = gpio_request_ex("spi0_para", "spk_pa");
++    if(!spk_pa)
++    {
++        printk("WWJ========%s spk_pa \n", __func__);
++        return -ENODEV;
++    }
++    gpio_write_one_pin_value(spk_pa, 0, " ");
++	
+ 	//init
+ 	lcd_buf = (uint8_t*)kmalloc(IST3020_WIDTH * IST3020_HEIGHT * 10, GFP_KERNEL);
+     	if(!lcd_buf){
+diff --git a/sound/soc/sunxi/sunxi-codec.c b/sound/soc/sunxi/sunxi-codec.c
+index 1b7f8f1..7e3a2ff 100755
+--- a/sound/soc/sunxi/sunxi-codec.c
++++ b/sound/soc/sunxi/sunxi-codec.c
+@@ -358,6 +358,9 @@ static  int codec_init(void)
+ 	return 0;
+ }
+ 
++extern void spk_pa_open(void);
++extern void spk_pa_close(void);
++
+ static int codec_play_open(struct snd_pcm_substream *substream)
+ {
+ 	codec_wr_control(SUNXI_DAC_DPC ,  0x1, DAC_EN, 0x1);
+@@ -378,6 +381,17 @@ static int codec_play_open(struct snd_pcm_substream *substream)
+ 	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
+ 	//enable dac to pa
+ 	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 	DACPAS, 0x1);
++
++	//codec_wrreg(0x3c, 0xf3);
++    //printk("ben:codec test %d\n", codec_rdreg(0x3c));
++
++	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
++	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
++	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
++	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
++
++	spk_pa_open();
++
+ 	return 0;
+ }
+ 
+@@ -546,6 +560,12 @@ static const struct snd_kcontrol_new sun7i_dac_ctls[] = {
+ 	 *	0:-1.5db,1:0db
+ 	 */
+ 	CODEC_SINGLE("Line output Volume", SUNXI_DAC_ACTL, 26, 1, 0),
++
++	//add ben
++	//CODEC_SINGLE("PhoneOut Switch",SUN7I_CODEC_AC_MIC_PHONE_CAL,4,1,0),
++	//CODEC_SINGLE("PhoneOut S0",SUN7I_CODEC_AC_MIC_PHONE_CAL,0,1,0),
++	//CODEC_SINGLE("PhoneOut S1",SUN7I_CODEC_AC_MIC_PHONE_CAL,1,1,0),
++	CODEC_SINGLE("PhoneOut Gain",SUN7I_CODEC_AC_MIC_PHONE_CAL,5,7,0),
+ };
+ 
+ static const struct snd_kcontrol_new sun7i_adc_ctls[] = {
+@@ -1555,6 +1575,24 @@ static int __devinit sunxi_codec_probe(struct platform_device *pdev)
+ 		ret = -ENOMEM;
+ 		goto err_resume_work_queue;
+ 	}
++
++	//add ben 
++	//codec_wrreg(0x3c, 0xf3);
++    //printk("ben:codec test %d\n", codec_rdreg(0x3c));
++
++	codec_wr_control(0x3c, 0x1, 0, 0x01);
++	codec_wr_control(0x3c, 0x1, 1, 0x01);
++	codec_wr_control(0x3c, 0x1, 4, 0x01);
++
++	codec_wr_control(0x3c, 0x1, 5, 0x00);
++	codec_wr_control(0x3c, 0x1, 6, 0x00);
++	codec_wr_control(0x3c, 0x1, 7, 0x00);
++
++    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
++    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
++    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
++    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
++
+ 	 return 0;
+      err_resume_work_queue:
+ 	 out:
+diff --git a/sound/soc/sunxi/sunxi-codec.h b/sound/soc/sunxi/sunxi-codec.h
+index 99bbd8e..8e1f68d 100755
+--- a/sound/soc/sunxi/sunxi-codec.h
++++ b/sound/soc/sunxi/sunxi-codec.h
+@@ -93,6 +93,19 @@
+ #define  PA_ENABLE                (4)
+ #define  HP_DIRECT                (3)
+ 
++
++//add ben
++#define SUN7I_CODEC_AC_MIC_PHONE_CAL		(0x3c)
++#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PREG1      (29)
++#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PREG2      (26)
++/* note: no idea where the output pins for the following are. */
++#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTG  (5)
++#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTEN (4)
++#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTS3 (3)
++#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTS2 (2)
++#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTS1 (1)
++#define SUN7I_CODEC_AC_MIC_PHONE_CAL_PHONEOUTS0 (0)
++
+ enum m1_codec_config {
+ 	CMD_MIC_SEL =0,
+ 	CMD_ADC_SEL,
