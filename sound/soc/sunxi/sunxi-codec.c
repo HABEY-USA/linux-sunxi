@@ -385,11 +385,12 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	//codec_wrreg(0x3c, 0xf3);
     //printk("ben:codec test %d\n", codec_rdreg(0x3c));
 
-	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
-	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
-	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
-	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
 
+	msleep(100);	
 	spk_pa_open();
 
 	return 0;
@@ -1588,10 +1589,10 @@ static int __devinit sunxi_codec_probe(struct platform_device *pdev)
 	codec_wr_control(0x3c, 0x1, 6, 0x00);
 	codec_wr_control(0x3c, 0x1, 7, 0x00);
 
-    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
-    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
-    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
-    codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
+    //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
+    //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
+    //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
+    //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
 
 	 return 0;
      err_resume_work_queue:
