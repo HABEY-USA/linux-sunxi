@@ -317,7 +317,7 @@ unsigned int mii_check_media (struct mii_if_info *mii,
 	unsigned int old_carrier, new_carrier;
 	int advertise, lpa, media, duplex;
 	int lpa2 = 0;
-
+//     printk("enter %s \r\n",__FUNCTION__);     
 	/* if forced media, go no further */
 	if (mii->force_media)
 		return 0; /* duplex did not change */
@@ -325,7 +325,8 @@ unsigned int mii_check_media (struct mii_if_info *mii,
 	/* check current and old link status */
 	old_carrier = netif_carrier_ok(mii->dev) ? 1 : 0;
 	new_carrier = (unsigned int) mii_link_ok(mii);
-
+   // printk("enter %s old_carrier=%d \r\n",__FUNCTION__,old_carrier);
+	// printk("enter %s new_carrier=%d \r\n",__FUNCTION__,new_carrier);
 	/* if carrier state did not change, this is a "bounce",
 	 * just exit as everything is already set correctly
 	 */

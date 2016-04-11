@@ -790,7 +790,6 @@ sunxi_emac_poll_work(struct work_struct *w)
 	struct delayed_work *dw = container_of(w, struct delayed_work, work);
 	sunxi_emac_board_info_t *db = container_of(dw, sunxi_emac_board_info_t, phy_poll);
 	struct net_device *ndev = db->ndev;
-
 	mii_check_media(&db->mii, netif_msg_link(db), 0);
 
 	if (netif_running(ndev))
@@ -1419,6 +1418,7 @@ static int sunxi_emac_phy_read(struct net_device *dev, int phyaddr_unused, int r
 	spin_lock_irqsave(&db->lock, flags);
 	/* issue the phy address and reg */
 	writel(SUNXI_EMAC_PHY | reg, db->emac_vbase + SUNXI_EMAC_MAC_MADR_REG);
+	//writel((phyaddr_unused << 8) | reg, db->emac_vbase + SUNXI_EMAC_MAC_MADR_REG);
 	/* pull up the phy io line */
 	writel(0x1, db->emac_vbase + SUNXI_EMAC_MAC_MCMD_REG);
 	spin_unlock_irqrestore(&db->lock, flags);
@@ -1444,6 +1444,42 @@ static int sunxi_emac_phy_read(struct net_device *dev, int phyaddr_unused, int r
 	mutex_unlock(&db->addr_lock);
 
 	return ret;
+#if 0
+	wemac_board_info_t *db = netdev_priv(dev);
+	unsigned long flags;
+	unsigned long timeout;
+	int ret = 0;
+
+	mutex_lock(&db->addr_lock);
+
+	spin_lock_irqsave(&db->lock,flags);
+	/* issue the phy address and reg */
+	writel((phyaddr << 8) | reg, db->emac_vbase + EMAC_MAC_MADR_REG);
+	/* pull up the phy io line */
+	writel(0x1, db->emac_vbase + EMAC_MAC_MCMD_REG);
+	spin_unlock_irqrestore(&db->lock,flags);
+
+	/* time out is 10ms */
+	timeout = jiffies + HZ/100;
+	while(readl(db->emac_vbase + EMAC_MAC_MIND_REG) & 0x01){
+		if(time_after(jiffies, timeout)){
+			printk(KERN_WARNING "Read the EMAC_MAC_MCMD_REG is timeout!\n");
+			break;
+		}
+	}
+
+	/* push down the phy io line and read data */
+	spin_lock_irqsave(&db->lock,flags);
+	/* push down the phy io line */
+	writel(0x0, db->emac_vbase + EMAC_MAC_MCMD_REG);
+	/* and write data */
+	ret = readl(db->emac_vbase + EMAC_MAC_MRDD_REG);
+	spin_unlock_irqrestore(&db->lock,flags);
+
+	mutex_unlock(&db->addr_lock);
+
+	return ret;
+#endif
 }
 
 /*
@@ -1749,7 +1785,6 @@ static int __devinit sunxi_emac_probe(struct platform_device *pdev)
 
 out:
 	dev_err(db->dev, "not found (%d).\n", ret);
-
 	sunxi_emac_release_board(pdev, db);
 	free_netdev(ndev);
 
