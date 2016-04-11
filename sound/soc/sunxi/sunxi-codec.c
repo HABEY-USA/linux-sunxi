@@ -43,6 +43,7 @@ static volatile unsigned int capture_dmasrc = 0;
 static volatile unsigned int capture_dmadst = 0;
 static volatile unsigned int play_dmasrc = 0;
 static volatile unsigned int play_dmadst = 0;
+static unsigned int phone_val = 0;
 
 /* Structure/enum declaration ------------------------------- */
 typedef struct codec_board_info {
@@ -266,6 +267,7 @@ int snd_codec_get_volsw(struct snd_kcontrol	*kcontrol,
 *
 * return 0 for success.
 */
+extern int codec_wr_control(u32 reg, u32 mask, u32 shift, u32 val);
 int snd_codec_put_volsw(struct	snd_kcontrol	*kcontrol,
 	struct	snd_ctl_elem_value	*ucontrol)
 {
@@ -289,6 +291,38 @@ int snd_codec_put_volsw(struct	snd_kcontrol	*kcontrol,
 			val2	=	max	- val2;
 		val_mask |= mask <<rshift;
 		val |= val2 <<rshift;
+	}
+
+	//add ben
+	if (reg == SUN7I_CODEC_AC_MIC_PHONE_CAL) 
+	{
+		if (val == 0) 
+		{
+			if (phone_val == 0)
+			{
+				//close
+                codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x0);
+                codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x0);
+                codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x0);
+                codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x0);
+				
+				phone_val = 1;
+				
+			}	
+		}
+		else
+		{
+			if (phone_val == 1)
+			{
+				//open
+       			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
+       			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
+       			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
+       			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);			
+
+				phone_val = 0;
+			}
+		}
 	}
 
 	return codec_wrreg_bits(reg,val_mask,val);
@@ -385,10 +419,10 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	//codec_wrreg(0x3c, 0xf3);
     //printk("ben:codec test %d\n", codec_rdreg(0x3c));
 
-	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
-	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
-	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
-	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x0);
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x0);
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x0);
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x0);
 
 	msleep(100);	
 	spk_pa_open();
@@ -1594,7 +1628,8 @@ static int __devinit sunxi_codec_probe(struct platform_device *pdev)
     //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
     //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
 
-	 return 0;
+	phone_val = 1;
+	return 0;
      err_resume_work_queue:
 	 out:
 		 dev_err(db->dev, "not found (%d).\n", ret);
