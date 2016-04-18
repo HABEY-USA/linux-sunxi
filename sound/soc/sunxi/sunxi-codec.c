@@ -44,6 +44,9 @@ static volatile unsigned int capture_dmadst = 0;
 static volatile unsigned int play_dmasrc = 0;
 static volatile unsigned int play_dmadst = 0;
 static unsigned int phone_val = 0;
+extern void spk_pa_open(void);
+extern void spk_pa_close(void);
+
 
 /* Structure/enum declaration ------------------------------- */
 typedef struct codec_board_info {
@@ -296,32 +299,35 @@ int snd_codec_put_volsw(struct	snd_kcontrol	*kcontrol,
 	//add ben
 	if (reg == SUN7I_CODEC_AC_MIC_PHONE_CAL) 
 	{
+	//printk("ben:.............codec_wr_control...........%d\n", val);
 		if (val == 0) 
 		{
-			if (phone_val == 0)
-			{
+			//if (phone_val == 0)
+			//{
 				//close
                 codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x0);
                 codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x0);
                 codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x0);
                 codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x0);
-				
+				codec_wr_control(SUNXI_DAC_ACTL, 0x1, 8, 0x0);				
+
 				phone_val = 1;
-				
-			}	
+	
+			//}	
 		}
 		else
 		{
-			if (phone_val == 1)
-			{
+			//if (phone_val == 1)
+			//{
 				//open
        			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
        			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
        			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
        			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);			
+				codec_wr_control(SUNXI_DAC_ACTL, 0x1, 8, 0x1);
 
 				phone_val = 0;
-			}
+			//}
 		}
 	}
 
@@ -392,8 +398,8 @@ static  int codec_init(void)
 	return 0;
 }
 
-extern void spk_pa_open(void);
-extern void spk_pa_close(void);
+//extern void spk_pa_open(void);
+//extern void spk_pa_close(void);
 
 static int codec_play_open(struct snd_pcm_substream *substream)
 {
@@ -419,10 +425,11 @@ static int codec_play_open(struct snd_pcm_substream *substream)
 	//codec_wrreg(0x3c, 0xf3);
     //printk("ben:codec test %d\n", codec_rdreg(0x3c));
 
-	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x0);
-	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x0);
-	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x0);
-	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x0);
+	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x0);
+	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x0);
+	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x0);
+	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x0);
+	//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 8, 0x0);
 
 	msleep(100);	
 	spk_pa_open();
@@ -1619,9 +1626,9 @@ static int __devinit sunxi_codec_probe(struct platform_device *pdev)
 	codec_wr_control(0x3c, 0x1, 1, 0x01);
 	codec_wr_control(0x3c, 0x1, 4, 0x01);
 
-	codec_wr_control(0x3c, 0x1, 5, 0x00);
-	codec_wr_control(0x3c, 0x1, 6, 0x00);
-	codec_wr_control(0x3c, 0x1, 7, 0x00);
+	//codec_wr_control(0x3c, 0x1, 5, 0x00);
+	//codec_wr_control(0x3c, 0x1, 6, 0x00);
+	//codec_wr_control(0x3c, 0x1, 7, 0x00);
 
     //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
     //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
