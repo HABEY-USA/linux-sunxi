@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __SW_SYS_CONFIG_H
-#define __SW_SYS_CONFIG_H
+#ifndef __SW_SYS_CONFIG_MACH_H
+#define __SW_SYS_CONFIG_MACH_H
 
 #include <mach/gpio.h>
 
