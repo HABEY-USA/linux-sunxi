@@ -309,7 +309,7 @@ int snd_codec_put_volsw(struct	snd_kcontrol	*kcontrol,
                 codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x0);
                 codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x0);
                 codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x0);
-				codec_wr_control(SUNXI_DAC_ACTL, 0x1, 8, 0x0);				
+				//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 8, 0x0);				
 
 				phone_val = 1;
 	
@@ -324,7 +324,7 @@ int snd_codec_put_volsw(struct	snd_kcontrol	*kcontrol,
        			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
        			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
        			codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);			
-				codec_wr_control(SUNXI_DAC_ACTL, 0x1, 8, 0x1);
+				//codec_wr_control(SUNXI_DAC_ACTL, 0x1, 8, 0x1);
 
 				phone_val = 0;
 			//}
@@ -1626,15 +1626,14 @@ static int __devinit sunxi_codec_probe(struct platform_device *pdev)
 	codec_wr_control(0x3c, 0x1, 1, 0x01);
 	codec_wr_control(0x3c, 0x1, 4, 0x01);
 
-	//codec_wr_control(0x3c, 0x1, 5, 0x00);
-	//codec_wr_control(0x3c, 0x1, 6, 0x00);
-	//codec_wr_control(0x3c, 0x1, 7, 0x00);
 
     //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 15, 0x1);
     //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 14, 0x1);
     //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 13, 0x1);
     //codec_wr_control(SUNXI_DAC_ACTL, 0x1, 29, 0x1);
 
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 7, 0x0);
+	codec_wr_control(SUNXI_DAC_ACTL, 0x1, 8, 0x1);
 	phone_val = 1;
 	return 0;
      err_resume_work_queue:
